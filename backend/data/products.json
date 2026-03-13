@@ -1,0 +1,23 @@
+[
+  {
+    "id": "p1",
+    "title": "MaFinBuSi Runner X",
+    "description": "Легкие беговые кроссовки для тренировок и города",
+    "category": "sneakers",
+    "brand": "MaFinBuSi",
+    "price": 7990,
+    "available": true,
+    "imageUrl": "/api/assets/images/runner-x.jpg"
+  },
+  {
+    "id": "p2",
+    "title": "MaFinBuSi Urban Hoodie",
+    "description": "Теплое худи для спорта и повседневной носки",
+    "category": "clothes",
+    "brand": "MaFinBuSi",
+    "price": 4990,
+    "available": true,
+    "imageUrl": "/api/assets/images/urban-hoodie.jpg"
+  }
+]
+
