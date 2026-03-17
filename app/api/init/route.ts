@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
+const BLOB_PREFIX = 'fl-ynid-blob-';
+
 // Начальные данные
 const initialProducts = [
   {
@@ -43,25 +45,25 @@ const initialOrders: any[] = [];
 export async function POST() {
   try {
     // Инициализируем данные в Vercel Blob
-    await put('lshop-products.json', JSON.stringify(initialProducts, null, 2), {
+    await put(`${BLOB_PREFIX}products.json`, JSON.stringify(initialProducts, null, 2), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put('lshop-users.json', JSON.stringify(initialUsers, null, 2), {
+    await put(`${BLOB_PREFIX}users.json`, JSON.stringify(initialUsers, null, 2), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put('lshop-baskets.json', JSON.stringify(initialBaskets, null, 2), {
+    await put(`${BLOB_PREFIX}baskets.json`, JSON.stringify(initialBaskets, null, 2), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put('lshop-orders.json', JSON.stringify(initialOrders, null, 2), {
+    await put(`${BLOB_PREFIX}orders.json`, JSON.stringify(initialOrders, null, 2), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,

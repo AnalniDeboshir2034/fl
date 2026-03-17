@@ -2,7 +2,7 @@ import { put, head } from '@vercel/blob';
 import fs from 'fs';
 import path from 'path';
 
-const BLOB_PREFIX = 'lshop-';
+const BLOB_PREFIX = 'fl-ynid-blob-';
 const DATA_DIR = path.join(process.cwd(), 'backend', 'data');
 
 // Проверяем, есть ли токен для Vercel Blob
