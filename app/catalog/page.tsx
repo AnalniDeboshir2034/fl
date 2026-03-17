@@ -22,18 +22,37 @@ function CatalogContent() {
   const [priceRange, setPriceRange] = useState<[number, number]>([0, 100000]);
 
   useEffect(() => {
-    fetch('/api/products')
-      .then(res => res.json())
-      .then((data: Product[]) => {
+    const loadProducts = async () => {
+      try {
+        const res = await fetch('/api/products');
+        let data = await res.json();
+        
+        // Если товаров нет, инициализируем данные
+        if (!data || data.length === 0) {
+          console.log('No products found, initializing...');
+          const initRes = await fetch('/api/init', { method: 'POST' });
+          const initData = await initRes.json();
+          console.log('Init result:', initData);
+          
+          // Загружаем товары снова после инициализации
+          const res2 = await fetch('/api/products');
+          data = await res2.json();
+        }
+        
         setProducts(data);
         setLoading(false);
-        
+
         if (data.length > 0) {
           const prices = data.map((p: Product) => p.price);
           setPriceRange([Math.min(...prices), Math.max(...prices)]);
         }
-      });
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setLoading(false);
+      }
+    };
 
+    loadProducts();
     loadBasket();
   }, [user]);
 

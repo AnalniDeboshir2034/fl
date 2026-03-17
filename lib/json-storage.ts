@@ -5,15 +5,13 @@ import path from 'path';
 const BLOB_PREFIX = 'lshop-';
 const DATA_DIR = path.join(process.cwd(), 'backend', 'data');
 
-// Проверяем, запущено ли на Vercel
-const isVercel = () => {
-  return process.env.VERCEL === '1' || !!process.env.BLOB_READ_WRITE_TOKEN;
-};
+// Проверяем, есть ли токен для Vercel Blob
+const hasBlobToken = () => !!process.env.BLOB_READ_WRITE_TOKEN;
 
 // Получение данных из JSON файла
 export async function readJsonFile(filename: string): Promise<any[]> {
-  // На Vercel используем Blob Storage
-  if (isVercel()) {
+  // Пробуем Vercel Blob если есть токен
+  if (hasBlobToken()) {
     const blobKey = `${BLOB_PREFIX}${filename}`;
 
     try {
@@ -25,16 +23,15 @@ export async function readJsonFile(filename: string): Promise<any[]> {
       }
     } catch (error: any) {
       if (error.statusCode === 404) {
-        return [];
+        // Файл не найден в Blob, пробуем локально
+        console.log(`File ${filename} not found in blob, trying local fallback`);
+      } else {
+        console.error(`Error reading ${filename} from blob:`, error);
       }
-      console.error(`Error reading ${filename} from blob:`, error);
-      return [];
     }
-
-    return [];
   }
 
-  // Локально читаем из файловой системы
+  // Локально читаем из файловой системы (fallback)
   try {
     const filePath = path.join(DATA_DIR, filename);
     if (!fs.existsSync(filePath)) {
@@ -50,8 +47,8 @@ export async function readJsonFile(filename: string): Promise<any[]> {
 
 // Запись данных в JSON файл
 export async function writeJsonFile(filename: string, data: any[]): Promise<void> {
-  // На Vercel используем Blob Storage
-  if (isVercel()) {
+  // Пробуем Vercel Blob если есть токен
+  if (hasBlobToken()) {
     const blobKey = `${BLOB_PREFIX}${filename}`;
 
     try {
@@ -60,22 +57,23 @@ export async function writeJsonFile(filename: string, data: any[]): Promise<void
         contentType: 'application/json',
         addRandomSuffix: false,
       });
+      return;
     } catch (error) {
-      console.error(`Error writing ${filename} to blob:`, error);
-      throw error;
+      console.error(`Error writing ${filename} to blob, falling back to filesystem:`, error);
+      // Fallback к файловой системе если blob не работает
     }
-  } else {
-    // Локально пишем в файловую систему
-    try {
-      if (!fs.existsSync(DATA_DIR)) {
-        fs.mkdirSync(DATA_DIR, { recursive: true });
-      }
-      const filePath = path.join(DATA_DIR, filename);
-      fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-    } catch (error) {
-      console.error(`Error writing ${filename}:`, error);
-      throw error;
+  }
+
+  // Пишем в файловую систему (fallback)
+  try {
+    if (!fs.existsSync(DATA_DIR)) {
+      fs.mkdirSync(DATA_DIR, { recursive: true });
     }
+    const filePath = path.join(DATA_DIR, filename);
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (error) {
+    console.error(`Error writing ${filename}:`, error);
+    throw error;
   }
 }
 
