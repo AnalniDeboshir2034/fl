@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readData, writeData } from '@/lib/data';
-import { User } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +12,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const users = readData<User & { password?: string }>('users.json');
+    // Читаем пользователей из файла
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'users.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const users = JSON.parse(data);
 
-    const existingUser = users.find(u => u.email === email);
+    const existingUser = users.find((u: any) => u.email === email);
     if (existingUser) {
       return NextResponse.json(
         { error: 'Пользователь с таким email уже существует' },
@@ -24,7 +27,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const newUser: User & { password: string } = {
+    const newUser = {
       id: `u${Date.now()}`,
       email,
       name,
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
     };
 
     users.push(newUser);
-    writeData('users.json', users);
+    fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
 
     const { password: _, ...userWithoutPassword } = newUser;
 

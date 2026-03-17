@@ -1,105 +1,135 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readData, writeData } from '@/lib/data';
-import { Basket, BasketItem } from '@/types';
 
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId');
-  const baskets = readData<Basket & { status?: string }>('baskets.json');
-  
-  if (userId) {
-    const userBaskets = baskets.filter(b => b.userId === userId);
-    return NextResponse.json(userBaskets);
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const baskets = JSON.parse(data);
+    
+    const userId = request.nextUrl.searchParams.get('userId');
+    if (userId) {
+      const userBaskets = baskets.filter((b: any) => b.userId === userId);
+      return NextResponse.json(userBaskets);
+    }
+    
+    return NextResponse.json(baskets);
+  } catch {
+    return NextResponse.json([]);
   }
-  
-  return NextResponse.json(baskets);
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const { userId, items, action } = body;
-  const baskets = readData<Basket & { status?: string }>('baskets.json');
-
-  if (action === 'add') {
-    const { productId, quantity } = body;
-    let basket = baskets.find(b => b.userId === userId && b.status === 'active');
+  try {
+    const body = await request.json();
+    const { userId, items, action, productId, quantity, size } = body;
     
-    if (!basket) {
-      basket = {
-        userId,
-        items: [],
-        status: 'active',
-      } as Basket & { status: string };
-      baskets.push(basket);
-    }
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const baskets = JSON.parse(data);
 
-    const existingItem = basket.items.find(item => item.productId === productId);
-    if (existingItem) {
-      existingItem.quantity += quantity || 1;
-    } else {
-      basket.items.push({ productId, quantity: quantity || 1 });
-    }
+    if (action === 'add') {
+      let basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
+      
+      if (!basket) {
+        basket = { userId, items: [], status: 'active' };
+        baskets.push(basket);
+      }
 
-    writeData('baskets.json', baskets);
-    return NextResponse.json(basket);
-  } else if (action === 'update') {
-    const { productId, quantity } = body;
-    let basket = baskets.find(b => b.userId === userId && b.status === 'active');
-    
-    if (basket) {
-      const existingItem = basket.items.find(item => item.productId === productId);
+      const existingItem = basket.items.find((item: any) => item.productId === productId && item.size === size);
       if (existingItem) {
-        if (quantity <= 0) {
-          basket.items = basket.items.filter(item => item.productId !== productId);
-        } else {
-          existingItem.quantity = quantity;
+        existingItem.quantity += quantity || 1;
+      } else {
+        basket.items.push({ productId, quantity: quantity || 1, size });
+      }
+    } else if (action === 'update') {
+      const basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
+      if (basket) {
+        const existingItem = basket.items.find((item: any) => item.productId === productId);
+        if (existingItem) {
+          if (quantity <= 0) {
+            basket.items = basket.items.filter((item: any) => item.productId !== productId);
+          } else {
+            existingItem.quantity = quantity;
+          }
         }
       }
-      writeData('baskets.json', baskets);
-    }
-    
-    return NextResponse.json(basket || { userId, items: [] });
-  } else if (action === 'clear') {
-    const basket = baskets.find(b => b.userId === userId && b.status === 'active');
-    if (basket) {
-      basket.items = [];
-      writeData('baskets.json', baskets);
-    }
-    return NextResponse.json(basket || { userId, items: [] });
-  } else {
-    const existingIndex = baskets.findIndex(b => b.userId === userId && b.status === 'active');
-    if (existingIndex >= 0) {
-      baskets[existingIndex] = { ...baskets[existingIndex], items };
+    } else if (action === 'clear') {
+      const basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
+      if (basket) {
+        basket.items = [];
+      }
     } else {
-      baskets.push({ userId, items, status: 'active' });
+      const existingIndex = baskets.findIndex((b: any) => b.userId === userId && b.status === 'active');
+      if (existingIndex >= 0) {
+        baskets[existingIndex] = { ...baskets[existingIndex], items };
+      } else {
+        baskets.push({ userId, items, status: 'active' });
+      }
     }
 
-    writeData('baskets.json', baskets);
-    return NextResponse.json(baskets[existingIndex >= 0 ? existingIndex : baskets.length - 1]);
+    fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+    return NextResponse.json(baskets[baskets.length - 1]);
+  } catch (error) {
+    console.error('Error updating basket:', error);
+    return NextResponse.json(
+      { error: 'Ошибка при обновлении корзины' },
+      { status: 500 }
+    );
   }
 }
 
 export async function PUT(request: NextRequest) {
-  const body = await request.json();
-  const { userId, status } = body;
-  const baskets = readData<Basket & { status?: string }>('baskets.json');
+  try {
+    const body = await request.json();
+    const { userId, status } = body;
+    
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const baskets = JSON.parse(data);
 
-  const basket = baskets.find(b => b.userId === userId && b.status === 'active');
-  if (basket && status) {
-    basket.status = status;
-    writeData('baskets.json', baskets);
+    const basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
+    if (basket && status) {
+      basket.status = status;
+      fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+    }
+
+    return NextResponse.json(basket || { userId, items: [] });
+  } catch (error) {
+    console.error('Error updating basket status:', error);
+    return NextResponse.json(
+      { error: 'Ошибка при обновлении статуса' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json(basket || { userId, items: [] });
 }
 
 export async function DELETE(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId');
-  const baskets = readData<Basket & { status?: string }>('baskets.json');
+  try {
+    const userId = request.nextUrl.searchParams.get('userId');
+    
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    let baskets = JSON.parse(data);
 
-  if (userId) {
-    const filteredBaskets = baskets.filter(b => b.userId !== userId || b.status !== 'active');
-    writeData('baskets.json', filteredBaskets);
+    if (userId) {
+      baskets = baskets.filter((b: any) => b.userId !== userId || b.status !== 'active');
+      fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting basket:', error);
+    return NextResponse.json(
+      { error: 'Ошибка при удалении корзины' },
+      { status: 500 }
+    );
   }
-
-  return NextResponse.json({ success: true });
 }

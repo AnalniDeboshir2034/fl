@@ -1,20 +1,40 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readData, writeData } from '@/lib/data';
-import { Product } from '@/types';
 
 export async function GET() {
-  const products = readData<Product>('products.json');
-  return NextResponse.json(products);
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'products.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    return NextResponse.json(JSON.parse(data));
+  } catch {
+    return NextResponse.json([]);
+  }
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const products = readData<Product>('products.json');
-  const newProduct: Product = {
-    ...body,
-    id: `p${products.length + 1}`,
-  };
-  products.push(newProduct);
-  writeData('products.json', products);
-  return NextResponse.json(newProduct, { status: 201 });
+  try {
+    const body = await request.json();
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'products.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const products = JSON.parse(data);
+    
+    const newProduct = {
+      ...body,
+      id: `p${Date.now()}`,
+    };
+    
+    products.push(newProduct);
+    fs.writeFileSync(filePath, JSON.stringify(products, null, 2));
+    
+    return NextResponse.json(newProduct, { status: 201 });
+  } catch (error) {
+    console.error('Error creating product:', error);
+    return NextResponse.json(
+      { error: 'Ошибка при создании товара' },
+      { status: 500 }
+    );
+  }
 }

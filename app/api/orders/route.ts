@@ -1,31 +1,50 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readData, writeData } from '@/lib/data';
-import { Order } from '@/types';
 
 export async function GET(request: NextRequest) {
-  const userId = request.nextUrl.searchParams.get('userId');
-  const orders = readData<Order>('orders.json');
-  
-  if (userId) {
-    const userOrders = orders.filter(o => o.userId === userId);
-    return NextResponse.json(userOrders);
+  try {
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'orders.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const orders = JSON.parse(data);
+    
+    const userId = request.nextUrl.searchParams.get('userId');
+    if (userId) {
+      const userOrders = orders.filter((o: any) => o.userId === userId);
+      return NextResponse.json(userOrders);
+    }
+    
+    return NextResponse.json(orders);
+  } catch {
+    return NextResponse.json([]);
   }
-  
-  return NextResponse.json(orders);
 }
 
 export async function POST(request: NextRequest) {
-  const body = await request.json();
-  const orders = readData<Order>('orders.json');
+  try {
+    const body = await request.json();
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'orders.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const orders = JSON.parse(data);
 
-  const newOrder: Order = {
-    ...body,
-    id: `o${orders.length + 1}`,
-    createdAt: new Date().toISOString(),
-    status: 'pending',
-  };
+    const newOrder = {
+      ...body,
+      id: `o${Date.now()}`,
+      createdAt: new Date().toISOString(),
+      status: 'pending',
+    };
 
-  orders.push(newOrder);
-  writeData('orders.json', orders);
-  return NextResponse.json(newOrder, { status: 201 });
+    orders.push(newOrder);
+    fs.writeFileSync(filePath, JSON.stringify(orders, null, 2));
+    
+    return NextResponse.json(newOrder, { status: 201 });
+  } catch (error) {
+    console.error('Error creating order:', error);
+    return NextResponse.json(
+      { error: 'Ошибка при создании заказа' },
+      { status: 500 }
+    );
+  }
 }

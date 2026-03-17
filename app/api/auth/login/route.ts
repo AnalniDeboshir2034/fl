@@ -1,6 +1,4 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { readData } from '@/lib/data';
-import { User } from '@/types';
 
 export async function POST(request: NextRequest) {
   try {
@@ -14,9 +12,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const users = readData<User & { password?: string }>('users.json');
+    // Читаем пользователей из файла
+    const fs = await import('fs');
+    const path = await import('path');
+    const filePath = path.join(process.cwd(), 'backend', 'data', 'users.json');
+    const data = fs.readFileSync(filePath, 'utf-8');
+    const users = JSON.parse(data);
 
-    const user = users.find(u => u.email === email && u.password === password);
+    const user = users.find((u: any) => u.email === email && u.password === password);
     if (!user) {
       return NextResponse.json(
         { error: 'Неверный email или пароль' },
@@ -36,6 +39,7 @@ export async function POST(request: NextRequest) {
 
     return response;
   } catch (error) {
+    console.error('Login error:', error);
     return NextResponse.json(
       { error: 'Ошибка при входе' },
       { status: 500 }

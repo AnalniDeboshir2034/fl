@@ -22,5 +22,26 @@
     "id": "o1",
     "createdAt": "2026-03-17T12:08:51.665Z",
     "status": "pending"
+  },
+  {
+    "userId": "u1773753755752",
+    "items": [
+      {
+        "productId": "p1",
+        "quantity": 1,
+        "size": "38"
+      }
+    ],
+    "total": 7990,
+    "shippingInfo": {
+      "name": "asd",
+      "phone": "+3752393934",
+      "city": "Minsj",
+      "address": "asdasd",
+      "zipCode": "1234"
+    },
+    "id": "o1773753824458",
+    "createdAt": "2026-03-17T13:23:44.458Z",
+    "status": "pending"
   }
 ]
