@@ -18,6 +18,7 @@ export default function Admin() {
     price: '',
     available: true,
     imageUrl: '',
+    sizes: '36, 37, 38, 39, 40, 41, 42, 43, 44, 45',
   });
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -57,6 +58,7 @@ export default function Admin() {
         body: JSON.stringify({
           ...formData,
           price: parseFloat(formData.price),
+          sizes: formData.sizes.split(',').map(s => s.trim()).filter(s => s),
         }),
       });
 
@@ -70,6 +72,7 @@ export default function Admin() {
           price: '',
           available: true,
           imageUrl: '',
+          sizes: '36, 37, 38, 39, 40, 41, 42, 43, 44, 45',
         });
         loadProducts();
       } else {
@@ -217,6 +220,22 @@ export default function Admin() {
                       }}
                     />
                   </div>
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Размеры (через запятую)</label>
+                  <input
+                    type="text"
+                    value={formData.sizes}
+                    onChange={(e) => setFormData({ ...formData, sizes: e.target.value })}
+                    placeholder="36, 37, 38, 39, 40, 41, 42, 43, 44, 45"
+                    style={{
+                      width: '100%',
+                      padding: '12px',
+                      border: '1px solid var(--border)',
+                      borderRadius: '6px',
+                      fontSize: '16px',
+                    }}
+                  />
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <input

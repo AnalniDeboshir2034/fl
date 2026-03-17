@@ -20,7 +20,8 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
-      fetch(`/api/baskets?userId=${user.id}`)
+      // Load orders (completed baskets)
+      fetch(`/api/orders?userId=${user.id}`)
         .then(res => res.json())
         .then(data => {
           setOrders(data);
@@ -120,7 +121,7 @@ export default function Profile() {
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', color: 'var(--secondary)', fontSize: '14px' }}>
                         <span>{new Date(order.createdAt).toLocaleDateString('ru-RU')}</span>
-                        <span>{order.total.toLocaleString('ru-RU')} ₽</span>
+                        <span>{(order.total || 0).toLocaleString('ru-RU')} ₽</span>
                       </div>
                     </div>
                   ))}

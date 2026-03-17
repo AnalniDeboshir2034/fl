@@ -18,6 +18,27 @@
     "price": 4990,
     "available": true,
     "imageUrl": "/api/assets/images/urban-hoodie.jpg"
+  },
+  {
+    "title": "Трусы Calin Kelai",
+    "description": "UwU",
+    "category": "etc",
+    "brand": "Calvin Klein",
+    "price": 232,
+    "available": true,
+    "imageUrl": "",
+    "sizes": [
+      "36",
+      "37",
+      "38",
+      "39",
+      "40",
+      "41",
+      "42",
+      "43",
+      "44",
+      "45"
+    ],
+    "id": "p3"
   }
 ]
-

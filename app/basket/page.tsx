@@ -9,6 +9,7 @@ import { useAuth } from '@/lib/auth-context';
 interface BasketItem {
   productId: string;
   quantity: number;
+  size?: string;
 }
 
 export default function Basket() {
@@ -16,7 +17,18 @@ export default function Basket() {
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showCheckout, setShowCheckout] = useState(false);
   const router = useRouter();
+
+  const [checkoutForm, setCheckoutForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    city: '',
+    address: '',
+    zipCode: '',
+    comment: '',
+  });
 
   useEffect(() => {
     if (!authLoading) {
@@ -86,6 +98,26 @@ export default function Basket() {
     }
   };
 
+  const removeItem = async (productId: string, size?: string) => {
+    if (user) {
+      await fetch('/api/baskets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          productId,
+          quantity: 0,
+          action: 'update',
+        }),
+      });
+      loadBasket();
+    } else {
+      const newBasket = basket.filter(item => !(item.productId === productId && item.size === size));
+      setBasket(newBasket);
+      localStorage.setItem('basket', JSON.stringify(newBasket));
+    }
+  };
+
   const getTotal = () => {
     return basket.reduce((total, item) => {
       const product = products.find(p => p.id === item.productId);
@@ -99,14 +131,28 @@ export default function Basket() {
       return;
     }
 
+    if (!checkoutForm.name || !checkoutForm.phone || !checkoutForm.city || !checkoutForm.address) {
+      alert('Пожалуйста, заполните обязательные поля (Имя, Телефон, Город, Адрес)');
+      return;
+    }
+
+    const orderData = {
+      userId: user.id,
+      items: basket,
+      total: getTotal(),
+      shippingInfo: {
+        name: checkoutForm.name,
+        phone: checkoutForm.phone,
+        city: checkoutForm.city,
+        address: checkoutForm.address,
+        zipCode: checkoutForm.zipCode,
+      },
+    };
+
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        userId: user.id,
-        items: basket,
-        total: getTotal(),
-      }),
+      body: JSON.stringify(orderData),
     });
 
     await fetch('/api/baskets', {
@@ -119,7 +165,7 @@ export default function Basket() {
     });
 
     setBasket([]);
-    alert('Заказ оформлен!');
+    alert('Заказ оформлен! Менеджер свяжется с вами в ближайшее время.');
     router.push('/profile');
   };
 
@@ -142,14 +188,15 @@ export default function Basket() {
             Корзина пуста. <Link href="/catalog">Перейти к покупкам</Link>
           </p>
         ) : (
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 350px', gap: '32px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 400px', gap: '32px' }}>
             <div>
+              <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Товары</h2>
               {basket.map(item => {
                 const product = products.find(p => p.id === item.productId);
                 if (!product) return null;
                 return (
                   <div
-                    key={item.productId}
+                    key={item.productId + (item.size || '')}
                     style={{
                       display: 'flex',
                       gap: '16px',
@@ -171,13 +218,37 @@ export default function Basket() {
                     ></div>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ fontSize: '16px', marginBottom: '8px' }}>{product.title}</h3>
-                      <p style={{ color: 'var(--secondary)', fontSize: '14px', marginBottom: '12px' }}>
+                      <p style={{ color: 'var(--secondary)', fontSize: '14px', marginBottom: '8px' }}>
                         {product.price.toLocaleString('ru-RU')} ₽
+                        {item.size && <span style={{ marginLeft: '12px' }}>Размер: {item.size}</span>}
                       </p>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity - 1)}>-</button>
-                        <span>{item.quantity}</span>
-                        <button onClick={() => updateQuantity(item.productId, item.quantity + 1)}>+</button>
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.quantity - 1)}
+                          style={{ width: '32px', height: '32px' }}
+                        >
+                          −
+                        </button>
+                        <span style={{ minWidth: '24px', textAlign: 'center' }}>{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.quantity + 1)}
+                          style={{ width: '32px', height: '32px' }}
+                        >
+                          +
+                        </button>
+                        <button
+                          onClick={() => removeItem(item.productId, item.size)}
+                          style={{
+                            marginLeft: 'auto',
+                            background: 'none',
+                            border: 'none',
+                            color: '#ef4444',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                          }}
+                        >
+                          Удалить
+                        </button>
                       </div>
                     </div>
                     <p style={{ fontSize: '18px', fontWeight: 'bold' }}>
@@ -187,37 +258,206 @@ export default function Basket() {
                 );
               })}
             </div>
-            <div
-              style={{
-                background: 'var(--card)',
-                borderRadius: '12px',
-                padding: '24px',
-                border: '1px solid var(--border)',
-                height: 'fit-content',
-              }}
-            >
-              <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Итого</h2>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
-                <span style={{ color: 'var(--secondary)' }}>Товары</span>
-                <span>{getTotal().toLocaleString('ru-RU')} ₽</span>
-              </div>
+            <div>
               <div
                 style={{
-                  borderTop: '1px solid var(--border)',
-                  paddingTop: '16px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
+                  background: 'var(--card)',
+                  borderRadius: '12px',
+                  padding: '24px',
+                  border: '1px solid var(--border)',
                   marginBottom: '24px',
                 }}
               >
-                <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Итого</span>
-                <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--primary)' }}>
-                  {getTotal().toLocaleString('ru-RU')} ₽
-                </span>
+                <h2 style={{ fontSize: '20px', marginBottom: '16px' }}>Итого</h2>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ color: 'var(--secondary)' }}>Товары ({basket.length} шт.)</span>
+                  <span>{getTotal().toLocaleString('ru-RU')} ₽</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px' }}>
+                  <span style={{ color: 'var(--secondary)' }}>Доставка</span>
+                  <span>Бесплатно</span>
+                </div>
+                <div
+                  style={{
+                    borderTop: '1px solid var(--border)',
+                    paddingTop: '16px',
+                    marginTop: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: '24px',
+                  }}
+                >
+                  <span style={{ fontSize: '18px', fontWeight: 'bold' }}>Итого</span>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold', color: 'var(--primary)' }}>
+                    {getTotal().toLocaleString('ru-RU')} ₽
+                  </span>
+                </div>
+                <button
+                  className="primary"
+                  onClick={() => setShowCheckout(!showCheckout)}
+                  style={{ width: '100%', padding: '12px', marginBottom: '8px' }}
+                >
+                  {showCheckout ? 'Назад к корзине' : 'Оформить заказ'}
+                </button>
+                {!user && (
+                  <Link href="/login" style={{ display: 'block', textAlign: 'center' }}>
+                    <button style={{ width: '100%', padding: '12px', marginTop: '8px' }}>
+                      Войти для оформления
+                    </button>
+                  </Link>
+                )}
               </div>
-              <button className="primary" onClick={placeOrder} style={{ width: '100%', padding: '12px' }}>
-                {!user ? 'Войдите для оформления' : 'Оформить заказ'}
-              </button>
+
+              {showCheckout && user && (
+                <div
+                  style={{
+                    background: 'var(--card)',
+                    borderRadius: '12px',
+                    padding: '24px',
+                    border: '1px solid var(--border)',
+                  }}
+                >
+                  <h2 style={{ fontSize: '20px', marginBottom: '20px' }}>Данные доставки</h2>
+                  <form style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Имя *
+                      </label>
+                      <input
+                        type="text"
+                        value={checkoutForm.name}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, name: e.target.value })}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Email
+                      </label>
+                      <input
+                        type="email"
+                        value={checkoutForm.email}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, email: e.target.value })}
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Телефон *
+                      </label>
+                      <input
+                        type="tel"
+                        value={checkoutForm.phone}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, phone: e.target.value })}
+                        required
+                        placeholder="+7 (999) 000-00-00"
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Город *
+                      </label>
+                      <input
+                        type="text"
+                        value={checkoutForm.city}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, city: e.target.value })}
+                        required
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Адрес доставки *
+                      </label>
+                      <input
+                        type="text"
+                        value={checkoutForm.address}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, address: e.target.value })}
+                        required
+                        placeholder="Улица, дом, квартира"
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Индекс
+                      </label>
+                      <input
+                        type="text"
+                        value={checkoutForm.zipCode}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, zipCode: e.target.value })}
+                        placeholder="123456"
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontSize: '14px', fontWeight: 500 }}>
+                        Комментарий к заказу
+                      </label>
+                      <textarea
+                        value={checkoutForm.comment}
+                        onChange={(e) => setCheckoutForm({ ...checkoutForm, comment: e.target.value })}
+                        rows={3}
+                        placeholder="Пожелания к доставке..."
+                        style={{
+                          width: '100%',
+                          padding: '10px',
+                          border: '1px solid var(--border)',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          resize: 'vertical',
+                        }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      className="primary"
+                      onClick={placeOrder}
+                      style={{ padding: '14px', fontSize: '16px', fontWeight: 600, marginTop: '8px' }}
+                    >
+                      Подтвердить заказ
+                    </button>
+                  </form>
+                </div>
+              )}
             </div>
           </div>
         )}

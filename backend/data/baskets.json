@@ -1,2 +1,16 @@
-[]
-
+[
+  {
+    "userId": "u1773749233603",
+    "items": [
+      {
+        "productId": "p1",
+        "quantity": 2
+      },
+      {
+        "productId": "p2",
+        "quantity": 2
+      }
+    ],
+    "status": "completed"
+  }
+]

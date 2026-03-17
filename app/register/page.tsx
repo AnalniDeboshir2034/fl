@@ -8,6 +8,7 @@ import { useAuth } from '@/lib/auth-context';
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -31,7 +32,7 @@ export default function Register() {
 
     setLoading(true);
 
-    const result = await register(email, password, name);
+    const result = await register(email, password, name, phone);
     setLoading(false);
 
     if (result.error) {
@@ -70,6 +71,22 @@ export default function Register() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid var(--border)',
+                borderRadius: '6px',
+                fontSize: '16px',
+              }}
+            />
+          </div>
+          <div>
+            <label style={{ display: 'block', marginBottom: '8px', fontWeight: 500 }}>Телефон</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+7 (999) 000-00-00"
               style={{
                 width: '100%',
                 padding: '12px',

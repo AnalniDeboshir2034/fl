@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "userId": "u1773749233603",
+    "items": [
+      {
+        "productId": "p1",
+        "quantity": 2
+      },
+      {
+        "productId": "p2",
+        "quantity": 2
+      }
+    ],
+    "total": 25960,
+    "shippingInfo": {
+      "name": "sd",
+      "phone": "+3752393934",
+      "city": "Minsj",
+      "address": "asdasd ",
+      "zipCode": "23"
+    },
+    "id": "o1",
+    "createdAt": "2026-03-17T12:08:51.665Z",
+    "status": "pending"
+  }
+]
