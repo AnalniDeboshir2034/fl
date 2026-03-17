@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storage } from '@/lib/storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,12 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Читаем пользователей из файла
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'users.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const users = JSON.parse(data);
+    const users = await storage.getUsers();
 
     const existingUser = users.find((u: any) => u.email === email);
     if (existingUser) {
@@ -36,8 +32,7 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    users.push(newUser);
-    fs.writeFileSync(filePath, JSON.stringify(users, null, 2));
+    await storage.saveUsers([...users, newUser]);
 
     const { password: _, ...userWithoutPassword } = newUser;
 

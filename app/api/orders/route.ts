@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storage } from '@/lib/storage';
 
 export async function GET(request: NextRequest) {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'orders.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const orders = JSON.parse(data);
-    
+    const orders = await storage.getOrders();
     const userId = request.nextUrl.searchParams.get('userId');
+    
     if (userId) {
       const userOrders = orders.filter((o: any) => o.userId === userId);
       return NextResponse.json(userOrders);
     }
     
     return NextResponse.json(orders);
-  } catch {
+  } catch (error) {
+    console.error('Error getting orders:', error);
     return NextResponse.json([]);
   }
 }
@@ -23,11 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'orders.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const orders = JSON.parse(data);
+    const orders = await storage.getOrders();
 
     const newOrder = {
       ...body,
@@ -36,8 +30,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
     };
 
-    orders.push(newOrder);
-    fs.writeFileSync(filePath, JSON.stringify(orders, null, 2));
+    await storage.saveOrders([...orders, newOrder]);
     
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {

@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storage } from '@/lib/storage';
 
 export async function GET(request: NextRequest) {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const baskets = JSON.parse(data);
-    
+    const baskets = await storage.getBaskets();
     const userId = request.nextUrl.searchParams.get('userId');
+    
     if (userId) {
       const userBaskets = baskets.filter((b: any) => b.userId === userId);
       return NextResponse.json(userBaskets);
     }
     
     return NextResponse.json(baskets);
-  } catch {
+  } catch (error) {
+    console.error('Error getting baskets:', error);
     return NextResponse.json([]);
   }
 }
@@ -25,11 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, items, action, productId, quantity, size } = body;
     
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const baskets = JSON.parse(data);
+    let baskets = await storage.getBaskets();
 
     if (action === 'add') {
       let basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
@@ -71,7 +65,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+    await storage.saveBaskets(baskets);
     return NextResponse.json(baskets[baskets.length - 1]);
   } catch (error) {
     console.error('Error updating basket:', error);
@@ -87,16 +81,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { userId, status } = body;
     
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const baskets = JSON.parse(data);
+    let baskets = await storage.getBaskets();
 
     const basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
     if (basket && status) {
       basket.status = status;
-      fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+      await storage.saveBaskets(baskets);
     }
 
     return NextResponse.json(basket || { userId, items: [] });
@@ -113,15 +103,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get('userId');
     
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'baskets.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    let baskets = JSON.parse(data);
+    let baskets = await storage.getBaskets();
 
     if (userId) {
       baskets = baskets.filter((b: any) => b.userId !== userId || b.status !== 'active');
-      fs.writeFileSync(filePath, JSON.stringify(baskets, null, 2));
+      await storage.saveBaskets(baskets);
     }
 
     return NextResponse.json({ success: true });

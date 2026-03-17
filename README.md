@@ -1,47 +1,40 @@
-# L-Shop - Интернет-магазин MaFinBuSi
+# L-Shop - Интернет-магазин кроссовок и одежды
 
-Проект интернет-магазина на **Next.js** для развертывания на **Vercel**.
+## 🚀 Развертывание на Vercel
 
-## Структура проекта
+### 1. Подключи Vercel KV (Redis)
 
-```
-L_Shop/
-├── app/                    # Next.js App Router
-│   ├── api/               # API Routes
-│   │   ├── products/      # API товаров
-│   │   ├── baskets/       # API корзин
-│   │   └── orders/        # API заказов
-│   ├── assets/images/     # Изображения товаров
-│   ├── catalog/           # Страница каталога
-│   ├── basket/            # Страница корзины
-│   ├── globals.css        # Глобальные стили
-│   ├── layout.tsx         # Корневой layout
-│   └── page.tsx           # Главная страница
-├── backend/data/          # JSON файлы с данными
-│   ├── products.json      # Товары
-│   ├── users.json         # Пользователи
-│   ├── baskets.json       # Корзины
-│   └── orders.json        # Заказы
-├── components/            # React компоненты
-├── lib/                   # Утилиты и хелперы
-├── types/                 # TypeScript типы
-├── next.config.js         # Конфигурация Next.js
-├── vercel.json            # Конфигурация Vercel
-└── tsconfig.json          # Конфигурация TypeScript
+1. Зайди в проект на [Vercel Dashboard](https://vercel.com/dashboard)
+2. Перейди во вкладку **Storage**
+3. Нажми **Connect Database** → **Vercel KV**
+4. Создай новый KV store (бесплатно до 10K операций/день)
+5. После создания Vercel автоматически добавит переменные окружения
+
+### 2. Настрой переменные окружения
+
+В настройках проекта на Vercel добавь:
+
+```env
+KV_URL=your_kv_url
+KV_REST_API_URL=your_rest_api_url
+KV_REST_API_TOKEN=your_rest_api_token
+KV_REST_API_READ_ONLY_TOKEN=your_read_only_token
 ```
 
-## API Endpoints
+**ИЛИ** просто подключи KV через интерфейс Vercel - переменные добавятся автоматически!
 
-| Метод | Endpoint | Описание |
-|-------|----------|----------|
-| GET | `/api/products` | Получить все товары |
-| POST | `/api/products` | Создать товар |
-| GET | `/api/baskets` | Получить все корзины |
-| POST | `/api/baskets` | Сохранить корзину |
-| GET | `/api/orders` | Получить все заказы |
-| POST | `/api/orders` | Создать заказ |
+### 3. Деплой
 
-## Локальная разработка
+```bash
+# Запуш изменения в Git
+git push
+
+# Vercel автоматически задеплоит
+# Или через CLI:
+vercel --prod
+```
+
+## 🛠️ Локальная разработка
 
 ```bash
 # Установка зависимостей
@@ -53,26 +46,36 @@ npm run dev
 # Сборка для production
 npm run build
 
-# Запуск production-сервера
+# Запуск production сервера
 npm start
 ```
 
-## Развертывание на Vercel
+## 📁 Структура данных
 
-1. Установите Vercel CLI:
-```bash
-npm install -g vercel
-```
+Данные хранятся в:
+- **Vercel (production)**: Vercel KV (Redis)
+- **Локально (development)**: `backend/data/*.json`
 
-2. Выполните деплой:
-```bash
-vercel
-```
+Файлы:
+- `users.json` - пользователи
+- `products.json` - товары
+- `baskets.json` - корзины
+- `orders.json` - заказы
 
-3. Или подключите репозиторий GitHub к Vercel для автоматического деплоя.
+## ✨ Функционал
 
-## Технологии
+- ✅ Регистрация и авторизация
+- ✅ Профиль пользователя
+- ✅ Каталог с фильтрами и поиском
+- ✅ Карточка товара с выбором размера
+- ✅ Корзина с оформлением заказа
+- ✅ Админ-панель для добавления товаров
+- ✅ История заказов
 
-- **Next.js 14** - React фреймворк с App Router
-- **TypeScript** - Типизация
-- **Vercel** - Хостинг и CI/CD
+## 🔧 Технологии
+
+- Next.js 14 (App Router)
+- React 18
+- TypeScript
+- Vercel KV (Redis) для production
+- File system для локальной разработки

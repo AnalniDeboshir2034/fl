@@ -1,13 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { storage } from '@/lib/storage';
 
 export async function GET() {
   try {
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'products.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return NextResponse.json(JSON.parse(data));
-  } catch {
+    const products = await storage.getProducts();
+    return NextResponse.json(products);
+  } catch (error) {
+    console.error('Error getting products:', error);
     return NextResponse.json([]);
   }
 }
@@ -15,19 +14,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const fs = await import('fs');
-    const path = await import('path');
-    const filePath = path.join(process.cwd(), 'backend', 'data', 'products.json');
-    const data = fs.readFileSync(filePath, 'utf-8');
-    const products = JSON.parse(data);
+    const products = await storage.getProducts();
     
     const newProduct = {
       ...body,
       id: `p${Date.now()}`,
     };
     
-    products.push(newProduct);
-    fs.writeFileSync(filePath, JSON.stringify(products, null, 2));
+    await storage.saveProducts([...products, newProduct]);
     
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {
