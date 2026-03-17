@@ -3,8 +3,10 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Product } from '@/types';
+import { useAuth } from '@/lib/auth-context';
 
 export default function Catalog() {
+  const { user } = useAuth();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [basket, setBasket] = useState<{ productId: string; quantity: number }[]>([]);
@@ -17,28 +19,63 @@ export default function Catalog() {
         setLoading(false);
       });
 
-    const savedBasket = localStorage.getItem('basket');
-    if (savedBasket) {
-      setBasket(JSON.parse(savedBasket));
-    }
-  }, []);
+    loadBasket();
+  }, [user]);
 
-  const addToBasket = (productId: string) => {
-    const newBasket = [...basket];
-    const existing = newBasket.find(item => item.productId === productId);
-    if (existing) {
-      existing.quantity += 1;
+  const loadBasket = async () => {
+    if (user) {
+      try {
+        const res = await fetch(`/api/baskets?userId=${user.id}`);
+        const baskets = await res.json();
+        const activeBasket = baskets.find((b: any) => b.status === 'active');
+        if (activeBasket) {
+          setBasket(activeBasket.items || []);
+        } else {
+          setBasket([]);
+        }
+      } catch {
+        setBasket([]);
+      }
     } else {
-      newBasket.push({ productId, quantity: 1 });
+      const savedBasket = localStorage.getItem('basket');
+      if (savedBasket) {
+        setBasket(JSON.parse(savedBasket));
+      } else {
+        setBasket([]);
+      }
     }
-    setBasket(newBasket);
-    localStorage.setItem('basket', JSON.stringify(newBasket));
+  };
+
+  const addToBasket = async (productId: string) => {
+    if (user) {
+      await fetch('/api/baskets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          productId,
+          quantity: 1,
+          action: 'add',
+        }),
+      });
+      loadBasket();
+    } else {
+      const newBasket = [...basket];
+      const existing = newBasket.find(item => item.productId === productId);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        newBasket.push({ productId, quantity: 1 });
+      }
+      setBasket(newBasket);
+      localStorage.setItem('basket', JSON.stringify(newBasket));
+    }
   };
 
   if (loading) {
     return (
       <div className="container">
-        <Header />
+        <Header user={user} />
         <p style={{ textAlign: 'center', padding: '40px' }}>Загрузка...</p>
       </div>
     );
@@ -46,7 +83,7 @@ export default function Catalog() {
 
   return (
     <div className="container">
-      <Header />
+      <Header user={user} />
       <main style={{ padding: '40px 0' }}>
         <h1 style={{ fontSize: '32px', marginBottom: '32px' }}>Каталог товаров</h1>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
@@ -92,7 +129,7 @@ export default function Catalog() {
   );
 }
 
-function Header() {
+function Header({ user }: { user: { name?: string } | null }) {
   return (
     <header style={{ padding: '20px 0', borderBottom: '1px solid var(--border)', marginBottom: '40px' }}>
       <nav style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -102,6 +139,11 @@ function Header() {
         <div style={{ display: 'flex', gap: '20px' }}>
           <Link href="/catalog" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>Каталог</Link>
           <Link href="/basket" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>Корзина</Link>
+          {user && (
+            <Link href="/profile" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>
+              Профиль
+            </Link>
+          )}
         </div>
       </nav>
     </header>

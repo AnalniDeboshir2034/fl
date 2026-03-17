@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { Product } from '@/types';
+import { useRouter } from 'next/navigation';
+import { Product, BasketItem as BasketItemType } from '@/types';
+import { useAuth } from '@/lib/auth-context';
 
 interface BasketItem {
   productId: string;
@@ -10,35 +12,77 @@ interface BasketItem {
 }
 
 export default function Basket() {
+  const { user, loading: authLoading } = useAuth();
   const [basket, setBasket] = useState<BasketItem[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
   useEffect(() => {
-    const savedBasket = localStorage.getItem('basket');
-    if (savedBasket) {
-      setBasket(JSON.parse(savedBasket));
+    if (!authLoading) {
+      loadBasket();
     }
+  }, [user, authLoading]);
 
+  useEffect(() => {
     fetch('/api/products')
       .then(res => res.json())
       .then(data => {
         setProducts(data);
-        setLoading(false);
       });
   }, []);
 
-  const updateQuantity = (productId: string, quantity: number) => {
-    if (quantity <= 0) {
-      const newBasket = basket.filter(item => item.productId !== productId);
-      setBasket(newBasket);
-      localStorage.setItem('basket', JSON.stringify(newBasket));
+  const loadBasket = async () => {
+    setLoading(true);
+    if (user) {
+      try {
+        const res = await fetch(`/api/baskets?userId=${user.id}`);
+        const baskets = await res.json();
+        const activeBasket = baskets.find((b: any) => b.status === 'active');
+        if (activeBasket) {
+          setBasket(activeBasket.items || []);
+        } else {
+          setBasket([]);
+        }
+      } catch {
+        setBasket([]);
+      }
     } else {
-      const newBasket = basket.map(item =>
-        item.productId === productId ? { ...item, quantity } : item
-      );
-      setBasket(newBasket);
-      localStorage.setItem('basket', JSON.stringify(newBasket));
+      const savedBasket = localStorage.getItem('basket');
+      if (savedBasket) {
+        setBasket(JSON.parse(savedBasket));
+      } else {
+        setBasket([]);
+      }
+    }
+    setLoading(false);
+  };
+
+  const updateQuantity = async (productId: string, quantity: number) => {
+    if (user) {
+      await fetch('/api/baskets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
+          productId,
+          quantity,
+          action: 'update',
+        }),
+      });
+      loadBasket();
+    } else {
+      if (quantity <= 0) {
+        const newBasket = basket.filter(item => item.productId !== productId);
+        setBasket(newBasket);
+        localStorage.setItem('basket', JSON.stringify(newBasket));
+      } else {
+        const newBasket = basket.map(item =>
+          item.productId === productId ? { ...item, quantity } : item
+        );
+        setBasket(newBasket);
+        localStorage.setItem('basket', JSON.stringify(newBasket));
+      }
     }
   };
 
@@ -50,25 +94,36 @@ export default function Basket() {
   };
 
   const placeOrder = async () => {
-    const userId = localStorage.getItem('userId') || 'user-' + Date.now();
-    localStorage.setItem('userId', userId);
+    if (!user) {
+      router.push('/login');
+      return;
+    }
 
     await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        userId,
+        userId: user.id,
         items: basket,
         total: getTotal(),
       }),
     });
 
-    localStorage.removeItem('basket');
+    await fetch('/api/baskets', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        userId: user.id,
+        status: 'completed',
+      }),
+    });
+
     setBasket([]);
     alert('Заказ оформлен!');
+    router.push('/profile');
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="container">
         <Header />
@@ -161,7 +216,7 @@ export default function Basket() {
                 </span>
               </div>
               <button className="primary" onClick={placeOrder} style={{ width: '100%', padding: '12px' }}>
-                Оформить заказ
+                {!user ? 'Войдите для оформления' : 'Оформить заказ'}
               </button>
             </div>
           </div>

@@ -1,6 +1,15 @@
+'use client';
+
 import Link from 'next/link';
+import { useAuth } from '@/lib/auth-context';
 
 export default function Home() {
+  const { user, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
   return (
     <div className="container">
       <header style={{ padding: '20px 0', borderBottom: '1px solid var(--border)', marginBottom: '40px' }}>
@@ -8,9 +17,38 @@ export default function Home() {
           <Link href="/" style={{ fontSize: '24px', fontWeight: 'bold', color: 'var(--primary)', textDecoration: 'none' }}>
             L-Shop
           </Link>
-          <div style={{ display: 'flex', gap: '20px' }}>
+          <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
             <Link href="/catalog" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>Каталог</Link>
             <Link href="/basket" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>Корзина</Link>
+            {user ? (
+              <>
+                <Link href="/profile" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>
+                  Профиль
+                </Link>
+                <Link href="/admin" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>
+                  Админка
+                </Link>
+                <button
+                  onClick={handleLogout}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: 'var(--secondary)',
+                    cursor: 'pointer',
+                    fontSize: '14px',
+                  }}
+                >
+                  Выйти
+                </button>
+              </>
+            ) : (
+              <>
+                <Link href="/login" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>Войти</Link>
+                <Link href="/register" style={{ textDecoration: 'none', color: 'var(--foreground)' }}>
+                  <button className="primary" style={{ padding: '8px 16px' }}>Регистрация</button>
+                </Link>
+              </>
+            )}
           </div>
         </nav>
       </header>
