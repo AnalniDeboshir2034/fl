@@ -1,0 +1,13 @@
+.git
+.gitignore
+.env
+.env.local
+.env.*.local
+*.log
+.DS_Store
+*.pem
+.coverage
+test
+tests
+__tests__
+backend/data/*.json

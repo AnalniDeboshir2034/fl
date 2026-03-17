@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/json-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const users = await storage.getUsers();
+    const users = await db.getUsers();
 
     const existingUser = users.find((u: any) => u.email === email);
     if (existingUser) {
@@ -32,9 +32,15 @@ export async function POST(request: NextRequest) {
       createdAt: new Date().toISOString(),
     };
 
-    await storage.saveUsers([...users, newUser]);
+    await db.saveUsers([...users, newUser]);
 
-    const { password: _, ...userWithoutPassword } = newUser;
+    const userWithoutPassword = {
+      id: newUser.id,
+      email: newUser.email,
+      name: newUser.name,
+      phone: newUser.phone,
+      createdAt: newUser.createdAt,
+    };
 
     const response = NextResponse.json(userWithoutPassword, { status: 201 });
     response.cookies.set('userId', newUser.id, {

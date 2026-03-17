@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/json-storage';
 
 export async function POST(request: NextRequest) {
   try {
@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const users = await storage.getUsers();
+    const users = await db.getUsers();
 
     const user = users.find((u: any) => u.email === email && u.password === password);
     if (!user) {
@@ -23,7 +23,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { password: _, ...userWithoutPassword } = user;
+    const userWithoutPassword = {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      phone: user.phone,
+      createdAt: user.createdAt,
+    };
 
     const response = NextResponse.json(userWithoutPassword);
     response.cookies.set('userId', user.id, {

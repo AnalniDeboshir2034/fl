@@ -1,38 +1,53 @@
 # L-Shop - Интернет-магазин кроссовок и одежды
 
-## 🚀 Развертывание на Vercel
+## 🚀 Развертывание на Vercel - БЫСТРЫЙ СТАРТ
 
-### 1. Подключи Vercel KV (Redis)
-
-1. Зайди в проект на [Vercel Dashboard](https://vercel.com/dashboard)
-2. Перейди во вкладку **Storage**
-3. Нажми **Connect Database** → **Vercel KV**
-4. Создай новый KV store (бесплатно до 10K операций/день)
-5. После создания Vercel автоматически добавит переменные окружения
-
-### 2. Настрой переменные окружения
-
-В настройках проекта на Vercel добавь:
-
-```env
-KV_URL=your_kv_url
-KV_REST_API_URL=your_rest_api_url
-KV_REST_API_TOKEN=your_rest_api_token
-KV_REST_API_READ_ONLY_TOKEN=your_read_only_token
-```
-
-**ИЛИ** просто подключи KV через интерфейс Vercel - переменные добавятся автоматически!
-
-### 3. Деплой
+### Шаг 1: Установка Vercel CLI
 
 ```bash
-# Запуш изменения в Git
+npm install -g vercel
+vercel login
+```
+
+### Шаг 2: Создание Blob Storage
+
+1. Зайди на https://vercel.com/dashboard
+2. Выбери свой проект (или создай новый из GitHub репозитория)
+3. Перейди во вкладку **Storage**
+4. Нажми **Connect Database** → **Vercel Blob**
+5. Создай Blob store (10 GB бесплатно!)
+6. ✅ Vercel автоматически добавит `BLOB_READ_WRITE_TOKEN`
+
+### Шаг 3: Деплой
+
+```bash
+# Просто запуш в Git (если подключен Vercel)
 git push
 
-# Vercel автоматически задеплоит
-# Или через CLI:
+# ИЛИ через CLI:
 vercel --prod
 ```
+
+### Шаг 4: Загрузка начальных данных
+
+После первого деплоя загрузи данные в Vercel Blob:
+
+**Вариант A: Через админ-панель (рекомендуется)**
+1. Зайди на сайт (ссылка после деплоя)
+2. Зарегистрируйся или войди
+3. Перейди на `/admin`
+4. Добавь товары через форму
+
+**Вариант B: Автоматически через API**
+API автоматически создаст файлы при первом запросе.
+
+## ✅ Проверка
+
+Все готово! Проверь работу:
+- `/` - главная страница
+- `/catalog` - каталог товаров
+- `/admin` - админ-панель
+- `/api/products` - API товаров
 
 ## 🛠️ Локальная разработка
 
@@ -50,17 +65,20 @@ npm run build
 npm start
 ```
 
-## 📁 Структура данных
+## 📁 Хранение данных
 
-Данные хранятся в:
-- **Vercel (production)**: Vercel KV (Redis)
-- **Локально (development)**: `backend/data/*.json`
+Данные хранятся в JSON файлах:
 
-Файлы:
-- `users.json` - пользователи
-- `products.json` - товары
-- `baskets.json` - корзины
-- `orders.json` - заказы
+**Локально:**
+- `backend/data/users.json` - пользователи
+- `backend/data/products.json` - товары
+- `backend/data/baskets.json` - корзины
+- `backend/data/orders.json` - заказы
+
+**На Vercel:**
+- Данные хранятся в **Vercel Blob Storage** в виде JSON файлов
+- Файлы: `lshop-users.json`, `lshop-products.json`, и т.д.
+- Автоматически переключается через `process.env.VERCEL`
 
 ## ✨ Функционал
 
@@ -77,5 +95,10 @@ npm start
 - Next.js 14 (App Router)
 - React 18
 - TypeScript
-- Vercel KV (Redis) для production
-- File system для локальной разработки
+- **Vercel Blob** для хранения JSON файлов на Vercel
+- **File System** для локальной разработки
+
+## 💰 Бесплатный тариф Vercel Blob:
+- 10 GB хранилище
+- 100 GB трафик в месяц
+- Достаточно для небольшого магазина!

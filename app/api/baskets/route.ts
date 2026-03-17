@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/json-storage';
 
 export async function GET(request: NextRequest) {
   try {
-    const baskets = await storage.getBaskets();
+    const baskets = await db.getBaskets();
     const userId = request.nextUrl.searchParams.get('userId');
     
     if (userId) {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { userId, items, action, productId, quantity, size } = body;
     
-    let baskets = await storage.getBaskets();
+    let baskets = await db.getBaskets();
 
     if (action === 'add') {
       let basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await storage.saveBaskets(baskets);
+    await db.saveBaskets(baskets);
     return NextResponse.json(baskets[baskets.length - 1]);
   } catch (error) {
     console.error('Error updating basket:', error);
@@ -81,12 +81,12 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { userId, status } = body;
     
-    let baskets = await storage.getBaskets();
+    let baskets = await db.getBaskets();
 
     const basket = baskets.find((b: any) => b.userId === userId && b.status === 'active');
     if (basket && status) {
       basket.status = status;
-      await storage.saveBaskets(baskets);
+      await db.saveBaskets(baskets);
     }
 
     return NextResponse.json(basket || { userId, items: [] });
@@ -103,11 +103,11 @@ export async function DELETE(request: NextRequest) {
   try {
     const userId = request.nextUrl.searchParams.get('userId');
     
-    let baskets = await storage.getBaskets();
+    let baskets = await db.getBaskets();
 
     if (userId) {
       baskets = baskets.filter((b: any) => b.userId !== userId || b.status !== 'active');
-      await storage.saveBaskets(baskets);
+      await db.saveBaskets(baskets);
     }
 
     return NextResponse.json({ success: true });

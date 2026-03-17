@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/json-storage';
 
 export async function GET() {
   try {
-    const products = await storage.getProducts();
+    const products = await db.getProducts();
     return NextResponse.json(products);
   } catch (error) {
     console.error('Error getting products:', error);
@@ -14,14 +14,14 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const products = await storage.getProducts();
+    const products = await db.getProducts();
     
     const newProduct = {
       ...body,
       id: `p${Date.now()}`,
     };
     
-    await storage.saveProducts([...products, newProduct]);
+    await db.saveProducts([...products, newProduct]);
     
     return NextResponse.json(newProduct, { status: 201 });
   } catch (error) {

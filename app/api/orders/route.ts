@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { storage } from '@/lib/storage';
+import { db } from '@/lib/json-storage';
 
 export async function GET(request: NextRequest) {
   try {
-    const orders = await storage.getOrders();
+    const orders = await db.getOrders();
     const userId = request.nextUrl.searchParams.get('userId');
     
     if (userId) {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const orders = await storage.getOrders();
+    const orders = await db.getOrders();
 
     const newOrder = {
       ...body,
@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
       status: 'pending',
     };
 
-    await storage.saveOrders([...orders, newOrder]);
+    await db.saveOrders([...orders, newOrder]);
     
     return NextResponse.json(newOrder, { status: 201 });
   } catch (error) {
