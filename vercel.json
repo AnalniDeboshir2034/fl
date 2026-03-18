@@ -6,8 +6,5 @@
   "outputDirectory": ".next",
   "env": {
     "NODE_ENV": "production"
-  },
-  "blob": {
-    "enabled": true
   }
 }
