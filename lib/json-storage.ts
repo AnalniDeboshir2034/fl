@@ -1,4 +1,4 @@
-import { put, head, getDownloadUrl } from '@vercel/blob';
+import { put, head } from '@vercel/blob';
 
 const BLOB_NAME = 'fl-ynid-blob';
 
@@ -13,11 +13,7 @@ const BLOB_KEYS = {
 // Получение данных из blob
 async function readBlob<T>(key: string): Promise<T[]> {
   try {
-    const blobMetadata = await head(key);
-    if (!blobMetadata || !blobMetadata.downloadUrl) {
-      return [];
-    }
-    const downloadUrl = getDownloadUrl(key);
+    const { downloadUrl } = await head(key);
     const response = await fetch(downloadUrl);
     if (!response.ok) {
       return [];
