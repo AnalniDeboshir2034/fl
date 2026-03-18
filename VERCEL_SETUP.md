@@ -11,7 +11,7 @@
 ### 1. Конфигурация Vercel Blob
 - ✅ `vercel.json` - включена поддержка Blob Storage
 - ✅ `lib/json-storage.ts` - работает только с Vercel Blob
-- ✅ Все данные хранятся в облаке, не в файловой системе
+- ✅ Все данные хранятся в **fl-ynid-blob** в облаке
 
 ### 2. API маршруты
 - ✅ `/api/products` - товары
@@ -22,11 +22,13 @@
 - ✅ `/api/auth/me` - проверка авторизации
 - ✅ `/api/auth/logout` - выход
 
-### 3. Данные
-- ✅ `backend/data/products.json` - начальные данные о товарах
-- ✅ `backend/data/users.json` - пользователи
-- ✅ `backend/data/baskets.json` - корзины
-- ✅ `backend/data/orders.json` - заказы
+### 3. Хранение данных в Blob
+
+Данные хранятся в Vercel Blob с ключами:
+- `fl-ynid-blob/users` - пользователи
+- `fl-ynid-blob/products` - товары
+- `fl-ynid-blob/baskets` - корзины
+- `fl-ynid-blob/orders` - заказы
 
 ---
 
@@ -82,17 +84,13 @@ curl -X POST https://your-app.vercel.app/api/baskets \
 
 ## 💡 Как это работает
 
-### Локально
+### Vercel Blob Storage
+
 ```
-File System → backend/data/*.json
+Vercel Blob → fl-ynid-blob/{users,products,baskets,orders}
 ```
 
-### На Vercel
-```
-Vercel Blob Storage → lshop-*.json
-```
-
-Код автоматически переключается через `@vercel/blob`.
+Код использует `@vercel/blob` для чтения и записи данных напрямую в облако.
 
 ---
 

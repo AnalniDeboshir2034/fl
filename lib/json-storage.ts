@@ -1,109 +1,77 @@
-import { put, head } from '@vercel/blob';
-import fs from 'fs';
-import path from 'path';
+import { put, head, getDownloadUrl } from '@vercel/blob';
 
-const BLOB_PREFIX = 'fl-ynid-blob-';
-const DATA_DIR = path.join(process.cwd(), 'backend', 'data');
+const BLOB_NAME = 'fl-ynid-blob';
 
-// Проверяем, есть ли токен для Vercel Blob
-const hasBlobToken = () => !!process.env.BLOB_READ_WRITE_TOKEN;
+// Ключи для разных типов данных в blob
+const BLOB_KEYS = {
+  users: `${BLOB_NAME}/users`,
+  products: `${BLOB_NAME}/products`,
+  baskets: `${BLOB_NAME}/baskets`,
+  orders: `${BLOB_NAME}/orders`,
+};
 
-// Получение данных из JSON файла
-export async function readJsonFile(filename: string): Promise<any[]> {
-  // Пробуем Vercel Blob если есть токен
-  if (hasBlobToken()) {
-    const blobKey = `${BLOB_PREFIX}${filename}`;
-
-    try {
-      const blobMetadata = await head(blobKey);
-      if (blobMetadata && blobMetadata.downloadUrl) {
-        const response = await fetch(blobMetadata.downloadUrl);
-        const text = await response.text();
-        return JSON.parse(text);
-      }
-    } catch (error: any) {
-      if (error.statusCode === 404) {
-        // Файл не найден в Blob, пробуем локально
-        console.log(`File ${filename} not found in blob, trying local fallback`);
-      } else {
-        console.error(`Error reading ${filename} from blob:`, error);
-      }
-    }
-  }
-
-  // Локально читаем из файловой системы (fallback)
+// Получение данных из blob
+async function readBlob<T>(key: string): Promise<T[]> {
   try {
-    const filePath = path.join(DATA_DIR, filename);
-    if (!fs.existsSync(filePath)) {
+    const blobMetadata = await head(key);
+    if (!blobMetadata || !blobMetadata.downloadUrl) {
       return [];
     }
-    const data = fs.readFileSync(filePath, 'utf-8');
-    return JSON.parse(data);
-  } catch (error) {
-    console.error(`Error reading ${filename}:`, error);
+    const downloadUrl = getDownloadUrl(key);
+    const response = await fetch(downloadUrl);
+    if (!response.ok) {
+      return [];
+    }
+    const text = await response.text();
+    if (!text) {
+      return [];
+    }
+    return JSON.parse(text);
+  } catch (error: any) {
+    if (error.code === 'BLOB_NOT_FOUND') {
+      return [];
+    }
+    console.error(`Error reading ${key} from blob:`, error);
     return [];
   }
 }
 
-// Запись данных в JSON файл
-export async function writeJsonFile(filename: string, data: any[]): Promise<void> {
-  // Пробуем Vercel Blob если есть токен
-  if (hasBlobToken()) {
-    const blobKey = `${BLOB_PREFIX}${filename}`;
-
-    try {
-      await put(blobKey, JSON.stringify(data, null, 2), {
-        access: 'public',
-        contentType: 'application/json',
-        addRandomSuffix: false,
-      });
-      return;
-    } catch (error) {
-      console.error(`Error writing ${filename} to blob, falling back to filesystem:`, error);
-      // Fallback к файловой системе если blob не работает
-    }
-  }
-
-  // Пишем в файловую систему (fallback)
-  try {
-    if (!fs.existsSync(DATA_DIR)) {
-      fs.mkdirSync(DATA_DIR, { recursive: true });
-    }
-    const filePath = path.join(DATA_DIR, filename);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
-  } catch (error) {
-    console.error(`Error writing ${filename}:`, error);
-    throw error;
-  }
+// Запись данных в blob
+async function writeBlob<T>(key: string, data: T[]): Promise<void> {
+  await put(key, JSON.stringify(data), {
+    access: 'public',
+    contentType: 'application/json',
+    addRandomSuffix: false,
+  });
 }
 
-// Вспомогательные функции для конкретных файлов
+// Вспомогательные функции для конкретных сущностей
 export const db = {
   async getUsers() {
-    return readJsonFile('users.json');
+    return readBlob<any>(BLOB_KEYS.users);
   },
   async saveUsers(users: any[]) {
-    return writeJsonFile('users.json', users);
+    return writeBlob(BLOB_KEYS.users, users);
   },
 
   async getProducts() {
-    return readJsonFile('products.json');
+    return readBlob<any>(BLOB_KEYS.products);
   },
   async saveProducts(products: any[]) {
-    return writeJsonFile('products.json', products);
+    return writeBlob(BLOB_KEYS.products, products);
   },
 
   async getBaskets() {
-    return readJsonFile('baskets.json');
+    return readBlob<any>(BLOB_KEYS.baskets);
   },
   async saveBaskets(baskets: any[]) {
-    return writeJsonFile('baskets.json', baskets);
+    return writeBlob(BLOB_KEYS.baskets, baskets);
   },
 
   async getOrders() {
-    return readJsonFile('orders.json');
+    return readBlob<any>(BLOB_KEYS.orders);
   },
   async saveOrders(orders: any[]) {
-    return writeJsonFile('orders.json', orders);
+    return writeBlob(BLOB_KEYS.orders, orders);
   },
 };

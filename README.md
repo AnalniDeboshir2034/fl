@@ -67,18 +67,17 @@ npm start
 
 ## 📁 Хранение данных
 
-Данные хранятся в JSON файлах:
+Данные хранятся в **Vercel Blob Storage**:
 
-**Локально:**
-- `backend/data/users.json` - пользователи
-- `backend/data/products.json` - товары
-- `backend/data/baskets.json` - корзины
-- `backend/data/orders.json` - заказы
+**Blob name:** `fl-ynid-blob`
 
-**На Vercel:**
-- Данные хранятся в **Vercel Blob Storage** в виде JSON файлов
-- Файлы: `lshop-users.json`, `lshop-products.json`, и т.д.
-- Автоматически переключается через `process.env.VERCEL`
+**Структура ключей:**
+- `fl-ynid-blob/users` - пользователи
+- `fl-ynid-blob/products` - товары
+- `fl-ynid-blob/baskets` - корзины
+- `fl-ynid-blob/orders` - заказы
+
+Данные хранятся в JSON формате внутри blob. При отсутствии данных возвращается пустой массив.
 
 ## ✨ Функционал
 
@@ -95,8 +94,7 @@ npm start
 - Next.js 14 (App Router)
 - React 18
 - TypeScript
-- **Vercel Blob** для хранения JSON файлов на Vercel
-- **File System** для локальной разработки
+- **Vercel Blob** для хранения данных
 
 ## 💰 Бесплатный тариф Vercel Blob:
 - 10 GB хранилище
