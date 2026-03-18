@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { put } from '@vercel/blob';
 
-const BLOB_PREFIX = 'fl-ynid-blob-';
+const BLOB_NAME = 'fl-ynid-blob';
 
 // Начальные данные
 const initialProducts = [
@@ -45,34 +45,34 @@ const initialOrders: any[] = [];
 export async function POST() {
   try {
     // Инициализируем данные в Vercel Blob
-    await put(`${BLOB_PREFIX}products.json`, JSON.stringify(initialProducts, null, 2), {
+    await put(`${BLOB_NAME}/products`, JSON.stringify(initialProducts), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put(`${BLOB_PREFIX}users.json`, JSON.stringify(initialUsers, null, 2), {
+    await put(`${BLOB_NAME}/users`, JSON.stringify(initialUsers), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put(`${BLOB_PREFIX}baskets.json`, JSON.stringify(initialBaskets, null, 2), {
+    await put(`${BLOB_NAME}/baskets`, JSON.stringify(initialBaskets), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    await put(`${BLOB_PREFIX}orders.json`, JSON.stringify(initialOrders, null, 2), {
+    await put(`${BLOB_NAME}/orders`, JSON.stringify(initialOrders), {
       access: 'public',
       contentType: 'application/json',
       addRandomSuffix: false,
     });
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       message: 'Данные успешно инициализированы',
-      products: initialProducts.length 
+      products: initialProducts.length
     });
   } catch (error) {
     console.error('Init error:', error);
@@ -84,7 +84,7 @@ export async function POST() {
 }
 
 export async function GET() {
-  return NextResponse.json({ 
+  return NextResponse.json({
     message: 'Отправь POST запрос для инициализации данных',
     endpoint: '/api/init'
   });
