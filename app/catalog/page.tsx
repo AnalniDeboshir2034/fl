@@ -13,7 +13,8 @@ function CatalogContent() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [basket, setBasket] = useState<{ productId: string; quantity: number; size?: string }[]>([]);
-  
+  const [isBasketLoading, setIsBasketLoading] = useState(false);
+
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -26,19 +27,19 @@ function CatalogContent() {
       try {
         const res = await fetch('/api/products');
         let data = await res.json();
-        
+
         // Если товаров нет, инициализируем данные
         if (!data || data.length === 0) {
           console.log('No products found, initializing...');
           const initRes = await fetch('/api/init', { method: 'POST' });
           const initData = await initRes.json();
           console.log('Init result:', initData);
-          
+
           // Загружаем товары снова после инициализации
           const res2 = await fetch('/api/products');
           data = await res2.json();
         }
-        
+
         setProducts(data);
         setLoading(false);
 
@@ -53,7 +54,8 @@ function CatalogContent() {
     };
 
     loadProducts();
-    loadBasket();
+    // Загружаем корзину с небольшой задержкой, чтобы не блокировать загрузку товаров
+    setTimeout(() => loadBasket(), 300);
   }, [user]);
 
   useEffect(() => {
@@ -67,8 +69,10 @@ function CatalogContent() {
   }, [searchParams]);
 
   const loadBasket = async () => {
-    if (user) {
-      try {
+    if (isBasketLoading) return;
+    setIsBasketLoading(true);
+    try {
+      if (user) {
         const res = await fetch(`/api/baskets?userId=${user.id}`);
         const baskets = await res.json();
         const activeBasket = baskets.find((b: any) => b.status === 'active');
@@ -77,22 +81,36 @@ function CatalogContent() {
         } else {
           setBasket([]);
         }
-      } catch {
-        setBasket([]);
-      }
-    } else {
-      const savedBasket = localStorage.getItem('basket');
-      if (savedBasket) {
-        setBasket(JSON.parse(savedBasket));
       } else {
-        setBasket([]);
+        const savedBasket = localStorage.getItem('basket');
+        if (savedBasket) {
+          setBasket(JSON.parse(savedBasket));
+        } else {
+          setBasket([]);
+        }
       }
+    } catch (error) {
+      console.error('Error loading basket:', error);
+      setBasket([]);
+    } finally {
+      setIsBasketLoading(false);
     }
   };
 
   const addToBasket = async (productId: string, size?: string) => {
     if (user) {
-      await fetch('/api/baskets', {
+      // Optimistic update для лучшего UX
+      const newBasket = [...basket];
+      const existing = newBasket.find(item => item.productId === productId && item.size === size);
+      if (existing) {
+        existing.quantity += 1;
+      } else {
+        newBasket.push({ productId, quantity: 1, size });
+      }
+      setBasket(newBasket);
+
+      // Асинхронное обновление на сервере без блокировки
+      fetch('/api/baskets', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -102,8 +120,11 @@ function CatalogContent() {
           size,
           action: 'add',
         }),
+      }).catch(error => {
+        console.error('Failed to add to basket:', error);
+        // Откат при ошибке
+        loadBasket();
       });
-      loadBasket();
     } else {
       const newBasket = [...basket];
       const existing = newBasket.find(item => item.productId === productId && item.size === size);

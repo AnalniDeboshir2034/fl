@@ -6,14 +6,17 @@ export async function GET(request: NextRequest) {
     const userId = request.cookies.get('userId')?.value;
 
     if (!userId) {
-      return NextResponse.json(null);
+      return NextResponse.json(null, { status: 200 });
     }
 
     const users = await db.getUsers();
     const user = users.find((u: any) => u.id === userId);
 
     if (!user) {
-      return NextResponse.json(null);
+      // Пользователь не найден, очищаем cookie
+      const response = NextResponse.json(null);
+      response.cookies.delete('userId');
+      return response;
     }
 
     const userWithoutPassword = {
@@ -24,9 +27,19 @@ export async function GET(request: NextRequest) {
       createdAt: user.createdAt,
     };
 
-    return NextResponse.json(userWithoutPassword);
+    // Продлеваем cookie при каждом запросе
+    const response = NextResponse.json(userWithoutPassword);
+    response.cookies.set('userId', user.id, {
+      httpOnly: false,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 7, // 7 дней
+      path: '/',
+    });
+
+    return response;
   } catch (error) {
     console.error('Auth check error:', error);
-    return NextResponse.json(null);
+    return NextResponse.json(null, { status: 200 });
   }
 }
